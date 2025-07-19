@@ -2,13 +2,13 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, request, jsonify, url_for, abort
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Character, Planet
 #from models import Person
 
 app = Flask(__name__)
@@ -36,14 +36,48 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
+@app.route('/characters', methods=['GET'])
+def get_characters():
+    characters = Character.query.all()
+    return jsonify([c.serialize() for c in characters])
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
+@app.route('/characters/<int:character_id>', methods=['GET'])
+def get_character(character_id):
+    character = Character.query.get(character_id)
+    if not character:
+        abort(404, description="Character not found")
+    return jsonify(character.serialize())
+
+@app.route('/planets', methods=['GET'])
+def get_planets():
+    planets = Planet.query.all()
+    return jsonify([p.serialize() for p in planets])
+
+@app.route('/planets/<int:planet_id>', methods=['GET'])
+def get_planet(planet_id):
+    planet = Planet.query.get(planet_id)
+    if not planet:
+        abort(404, description="Planet not found")
+    return jsonify(planet.serialize())
+
+@app.route('/users', methods=['GET'])
+def get_users():
+    users = User.query.all()
+    return jsonify([u.serialize() for u in users])
+
+@app.route('/users/<int:user_id>/favorites', methods=['GET'])
+def get_user_favorites(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        abort(404, description="User not found")
+
+    favorites = {
+        "planets": [planet.serialize() for planet in user.favorite_planets],
+        "characters": [character.serialize() for character in user.favorite_characters],
+        "starships": [starship.serialize() for starship in user.favorite_starships],
+        "weapons": [weapon.serialize() for weapon in user.favorite_weapons]
     }
-
-    return jsonify(response_body), 200
+    return jsonify(favorites)
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
