@@ -5,28 +5,37 @@ from typing import Optional
 
 db = SQLAlchemy()
 
+
 class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
 
+    favorite_planets: Mapped[list["Planet"]] = relationship(
+        "Planet", back_populates="user")
 
-    favorite_planets: Mapped[list["Planet"]] = relationship("Planet", back_populates="user")
+    favorite_characters: Mapped[list["Character"]] = relationship(
+        "Character", back_populates="user")
 
-    favorite_characters: Mapped[list["Character"]] = relationship("Character", back_populates="user")
+    favorite_starships: Mapped[list["Starship"]] = relationship(
+        "Starship", back_populates="user")
 
-    favorite_starships: Mapped[list["Starship"]] = relationship("Starship", back_populates="user")
-
-    favorite_weapons: Mapped[list["Weapon"]] = relationship("Weapon", back_populates="user")
-
+    favorite_weapons: Mapped[list["Weapon"]] = relationship(
+        "Weapon", back_populates="user")
 
     def serialize(self):
         return {
             "id": self.id,
             "email": self.email,
+            "favorite_planets": [planet.serialize() for planet in self.favorite_planets],
+            "favorite_characters": [character.serialize() for character in self.favorite_characters],
+            "favorite_starships": [starship.serialize() for starship in self.favorite_starships],
+            "favorite_weapons": [weapon.serialize() for weapon in self.favorite_weapons]
             # do not serialize the password, its a security breach
         }
+
 
 class Planet(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -35,8 +44,8 @@ class Planet(db.Model):
     population: Mapped[int] = mapped_column(nullable=False)
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"))
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="favorite_planets")
-
+    user: Mapped[Optional["User"]] = relationship(
+        "User", back_populates="favorite_planets")
 
     def serialize(self):
         return {
@@ -45,6 +54,7 @@ class Planet(db.Model):
             "climate": self.climate,
             "population": self.population,
         }
+
 
 class Character(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -57,7 +67,8 @@ class Character(db.Model):
     origin: Mapped["Planet"] = relationship("Planet")
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"))
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="favorite_characters")
+    user: Mapped[Optional["User"]] = relationship(
+        "User", back_populates="favorite_characters")
 
     def serialize(self):
         return {
@@ -69,16 +80,18 @@ class Character(db.Model):
             "origin": self.origin.name if self.origin else None,
             "user": self.user.email if self.user else None
         }
-    
+
+
 class Starship(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(), nullable=False)
     cargo_space: Mapped[str] = mapped_column(String(), nullable=False)
-    speed: Mapped[int] = mapped_column (nullable=False)
-    occupancy: Mapped[int] = mapped_column (nullable=False)
+    speed: Mapped[int] = mapped_column(nullable=False)
+    occupancy: Mapped[int] = mapped_column(nullable=False)
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"))
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="favorite_starships")
+    user: Mapped[Optional["User"]] = relationship(
+        "User", back_populates="favorite_starships")
 
     def serialize(self):
         return {
@@ -89,16 +102,18 @@ class Starship(db.Model):
             "occupancy": self.occupancy,
         }
 
+
 class Weapon(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(), nullable=False)
     class_type: Mapped[str] = mapped_column(String(), nullable=False)
     weilder_id: Mapped[int] = mapped_column(ForeignKey("character.id"))
     weilder: Mapped["Character"] = relationship("Character")
-    power_source: Mapped[str] = mapped_column (nullable=False)
+    power_source: Mapped[str] = mapped_column(nullable=False)
 
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"))
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="favorite_weapons")
+    user: Mapped[Optional["User"]] = relationship(
+        "User", back_populates="favorite_weapons")
 
     def serialize(self):
         return {
